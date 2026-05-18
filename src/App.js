@@ -1,195 +1,221 @@
 import React, { useState, useEffect } from "react";
-import { auth, provider } from "./firebase";
-import { signInWithPopup, signOut } from "firebase/auth";
 
-const API_KEY = process.env.REACT_APP_AI_KEY;
+export default function App(){
 
-export default function App() {
+  // ✅ USER
+  const [user,setUser]=useState(localStorage.getItem("user")||"");
+  const [inputUser,setInputUser]=useState("");
 
-  const [user, setUser] = useState(null);
-  const [tasks, setTasks] = useState([]);
-  const [input, setInput] = useState("");
-  const [aiInput, setAiInput] = useState("");
+  // ✅ TASKS
+  const [tasks,setTasks]=useState(JSON.parse(localStorage.getItem("tasks"))||[]);
+  const [taskInput,setTaskInput]=useState("");
 
-  const [time, setTime] = useState(1500);
-  const [running, setRunning] = useState(false);
+  // ✅ TIMER
+  const [time,setTime]=useState(1500);
+  const [running,setRunning]=useState(false);
 
-  const [zekr, setZekr] = useState("");
+  // ✅ XP SYSTEM
+  const [xp,setXp]=useState(Number(localStorage.getItem("xp"))||0);
+  const [level,setLevel]=useState(1);
+  const [streak,setStreak]=useState(Number(localStorage.getItem("streak"))||0);
 
-  // ✅ Login
-  const loginGoogle = async () => {
-    const res = await signInWithPopup(auth, provider);
-    setUser(res.user.displayName);
-  };
+  // ✅ AI
+  const [aiInput,setAiInput]=useState("");
 
-  const logout = async () => {
-    await signOut(auth);
-    setUser(null);
-  };
+  // ✅ MODES
+  const [focusMode,setFocusMode]=useState(false);
 
-  // ✅ Timer
-  useEffect(() => {
-    if (running && time > 0) {
-      const t = setInterval(() => setTime(t => t - 1), 1000);
-      return () => clearInterval(t);
+  // ✅ TRACKERS
+  const [distractions,setDistractions]=useState(0);
+
+  // ✅ AZKAR
+  const [zekr,setZekr]=useState("");
+
+  // ✅ SAVE DATA
+  useEffect(()=>{
+    localStorage.setItem("tasks",JSON.stringify(tasks));
+    localStorage.setItem("xp",xp);
+    localStorage.setItem("streak",streak);
+    localStorage.setItem("user",user);
+  },[tasks,xp,streak,user]);
+
+  // ✅ LEVEL SYSTEM
+  useEffect(()=>{
+    setLevel(Math.floor(xp/100)+1);
+  },[xp]);
+
+  // ✅ TIMER
+  useEffect(()=>{
+    if(running && time>0){
+      const t=setInterval(()=>setTime(t=>t-1),1000);
+      return ()=>clearInterval(t);
     }
 
-    if (time === 0) {
+    if(time===0){
       setRunning(false);
       setTime(1500);
-      alert("✅ خلصت السيشن!");
-    }
-  }, [running, time]);
 
-  // ✅ Azkar
-  useEffect(() => {
-    const list = [
-      "سبحان الله وبحمده",
+      setXp(x=>x+50);
+      setStreak(s=>s+1);
+
+      alert("🔥 Session done +50 XP");
+    }
+
+  },[running,time]);
+
+  // ✅ AZKAR
+  useEffect(()=>{
+    const list=[
+      "سبحان الله",
       "الحمد لله",
       "الله أكبر",
       "لا إله إلا الله",
-      "استغفر الله العظيم",
+      "استغفر الله",
       "اللهم صل على محمد"
     ];
 
-    const i = setInterval(() => {
-      const r = list[Math.floor(Math.random() * list.length)];
+    const i=setInterval(()=>{
+      const r=list[Math.floor(Math.random()*list.length)];
       setZekr(r);
-    }, 5000);
+    },5000);
 
-    return () => clearInterval(i);
-  }, []);
+    return ()=>clearInterval(i);
+  },[]);
 
-  // ✅ Tasks
-  const addTask = () => {
-    if (!input) return;
-    setTasks([...tasks, input]);
-    setInput("");
-  };
-
-  // 🤖 AI (محسن + متنوع)
-  const askAI = async () => {
-
-    if (!aiInput) return alert("اكتب حاجة");
-
-    try {
-
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + API_KEY,
-          "HTTP-Referer": "https://focus-app-eight-rouge.vercel.app",
-          "X-Title": "Focus App"
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: "انت مساعد ذكي. اعمل خطة tasks مختلفة كل مرة ومنظمة."
-            },
-            {
-              role: "user",
-              content: aiInput + " اعملها بشكل جديد ومختلف"
-            }
-          ]
-        })
-      });
-
-      const data = await res.json();
-      const reply = data?.choices?.[0]?.message?.content;
-
-      if (!reply) throw new Error("AI fail");
-
-      const lines = reply.split("\n").filter(l => l.trim() !== "");
-      setTasks(prev => [...prev, ...lines]);
-
-    } catch (e) {
-
-      // ✅ fallback متنوع
-      const randomPlans = [
-        ["📖 ابدأ", "🧠 راجع", "✅ خلص"],
-        ["📘 جزء 1", "☕ بريك", "📚 جزء 2"],
-        ["🧠 مراجعة", "✍️ تدريب", "✅ اختبار"],
-        ["📖 قراءة", "🎯 تركيز", "✅ إنهاء"]
-      ];
-
-      const random = randomPlans[Math.floor(Math.random() * randomPlans.length)];
-      setTasks(prev => [...prev, ...random]);
-    }
-  };
-
-  const format = () => {
-    const m = Math.floor(time / 60);
-    const s = time % 60;
-    return m + ":" + (s < 10 ? "0" : "") + s;
-  };
-
-  // ✅ Login screen
-  if (!user) {
-    return (
+  // ✅ LOGIN
+  if(!user){
+    return(
       <div style={styles.center}>
         <h2>👋 Welcome</h2>
-        <button style={styles.btn} onClick={loginGoogle}>
-          🔐 Login with Google
-        </button>
+        <input value={inputUser} onChange={(e)=>setInputUser(e.target.value)} placeholder="Name"/>
+        <button onClick={()=>setUser(inputUser)}>Start</button>
       </div>
     );
   }
 
-  return (
+  // ✅ ADD TASK
+  const addTask=()=>{
+    if(!taskInput) return;
+    setTasks([...tasks,{text:taskInput}]);
+    setTaskInput("");
+  };
+
+  // ✅ AI SMART (محسن ومتغير)
+  const smartAI=()=>{
+    const text=aiInput.toLowerCase();
+
+    let plans=[];
+
+    if(text.includes("امتحان")){
+      plans=[
+        "📖 Chapter 1",
+        "☕ Break",
+        "📘 Chapter 2",
+        "🧠 Review",
+        "✅ Practice"
+      ];
+    } else if(text.includes("3")){
+      plans=[
+        "📖 Study 1 (50 min)",
+        "☕ Break",
+        "📘 Study 2 (50 min)",
+        "🧠 Review"
+      ];
+    } else {
+      const randomPlans=[
+        ["📚 Start","🧠 Review","✅ Finish"],
+        ["📖 Read","🎯 Focus","✅ Done"]
+      ];
+      plans=randomPlans[Math.floor(Math.random()*randomPlans.length)];
+    }
+
+    setTasks([...tasks,...plans.map(p=>({text:p}))]);
+  };
+
+  // ✅ MONK MODE
+  if(focusMode){
+    return(
+      <div style={styles.focus}>
+        <h2>🧘 Monk Mode</h2>
+
+        <h1>{Math.floor(time/60)}:{time%60}</h1>
+
+        <button onClick={()=>setRunning(!running)}>
+          {running?"Pause":"Start"}
+        </button>
+
+        <button onClick={()=>{
+          setFocusMode(false);
+          setDistractions(d=>d+1);
+        }}>
+          Exit
+        </button>
+
+        <p>🚫 Distractions: {distractions}</p>
+      </div>
+    );
+  }
+
+  return(
     <div style={styles.container}>
 
-      {/* Sidebar */}
+      {/* SIDEBAR */}
       <div style={styles.sidebar}>
-        <h3>🔥 Focus</h3>
+        <h3>🔥 Focus System</h3>
+
         <p>👤 {user}</p>
-        <button style={styles.logout} onClick={logout}>Logout</button>
+        <p>🏆 Level {level}</p>
+        <p>🔥 Streak {streak}</p>
+        <p>⚡ XP {xp}</p>
+
+        <button onClick={()=>setUser("")}>Logout</button>
       </div>
 
-      {/* Main */}
+      {/* MAIN */}
       <div style={styles.main}>
 
-        <h1>👑 FINAL APP</h1>
+        <h1>👑 Dashboard</h1>
 
-        {/* Timer */}
+        {/* TIMER */}
         <div style={styles.card}>
-          <h2>{format()}</h2>
-          <button onClick={() => setRunning(!running)}>
-            {running ? "Pause" : "Start"}
+          <h2>{Math.floor(time/60)}:{time%60}</h2>
+
+          <button onClick={()=>setRunning(!running)}>
+            {running?"Pause":"Start"}
+          </button>
+
+          <button onClick={()=>setFocusMode(true)}>
+            🧘 Monk Mode
           </button>
         </div>
 
-        {/* Azkar */}
+        {/* AZKAR */}
         <div style={styles.card}>
           <h3>🕌 ذكر</h3>
           <p>{zekr}</p>
         </div>
 
-        {/* Tasks */}
+        {/* TASKS */}
         <div style={styles.card}>
 
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Task"
-          />
+          <input value={taskInput} onChange={(e)=>setTaskInput(e.target.value)} placeholder="Task"/>
           <button onClick={addTask}>Add</button>
 
           <br/><br/>
 
-          <input
-            value={aiInput}
-            onChange={(e) => setAiInput(e.target.value)}
-            placeholder="اكتب للـ AI"
-          />
-          <button onClick={askAI}>🤖 AI</button>
+          <input value={aiInput} onChange={(e)=>setAiInput(e.target.value)} placeholder="AI plan"/>
+          <button onClick={smartAI}>🤖 AI</button>
 
-          {tasks.map((t, i) => (
-            <div key={i} style={styles.task}>{t}</div>
+          {tasks.map((t,i)=>(
+            <div key={i} style={styles.task}>{t.text}</div>
           ))}
 
+        </div>
+
+        {/* STATS */}
+        <div style={styles.card}>
+          <h3>📊 Stats</h3>
+          <p>Distractions: {distractions}</p>
         </div>
 
       </div>
@@ -197,14 +223,26 @@ export default function App() {
   );
 }
 
-// styles
-const styles = {
+const styles={
   container:{display:"flex",height:"100vh",background:"#0f172a",color:"white"},
-  sidebar:{width:"200px",background:"#020617",padding:"20px"},
+  sidebar:{width:"220px",background:"#020617",padding:"20px"},
   main:{flex:1,padding:"20px"},
-  card:{background:"#1e293b",padding:"15px",marginBottom:"15px",borderRadius:"10px"},
-  btn:{padding:"10px",background:"#22c55e",border:"none",color:"white"},
-  logout:{marginTop:"10px",background:"red",color:"white"},
-  center:{height:"100vh",display:"flex",justifyContent:"center",alignItems:"center",flexDirection:"column"},
-  task:{marginTop:"5px",padding:"6px",background:"#334155",borderRadius:"6px"}
+  card:{background:"#1e293b",padding:"20px",marginBottom:"15px",borderRadius:"10px"},
+  focus:{
+    height:"100vh",
+    background:"#000",
+    color:"white",
+    display:"flex",
+    flexDirection:"column",
+    justifyContent:"center",
+    alignItems:"center"
+  },
+  center:{
+    height:"100vh",
+    display:"flex",
+    justifyContent:"center",
+    alignItems:"center",
+    flexDirection:"column"
+  },
+  task:{marginTop:"5px"}
 };
