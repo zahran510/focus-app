@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 export default function App(){
 
-  // ================= USER =================
+  // USER
   const [user,setUser]=useState(localStorage.getItem("user")||"");
   const [name,setName]=useState("");
 
-  // ================= DATA =================
+  // DATA
   const [tasks,setTasks]=useState(JSON.parse(localStorage.getItem("tasks"))||[]);
   const [input,setInput]=useState("");
 
@@ -14,21 +14,21 @@ export default function App(){
   const [running,setRunning]=useState(false);
 
   const [xp,setXp]=useState(Number(localStorage.getItem("xp"))||0);
-  const level = Math.floor(xp/100)+1;
+  const level=Math.floor(xp/100)+1;
 
   const [streak,setStreak]=useState(Number(localStorage.getItem("streak"))||0);
   const [distractions,setDistractions]=useState(Number(localStorage.getItem("distractions"))||0);
-  const [mood,setMood]=useState(localStorage.getItem("mood")||"");
 
+  const [mood,setMood]=useState(localStorage.getItem("mood")||"");
   const [focusTime,setFocusTime]=useState(Number(localStorage.getItem("focusTime"))||0);
-  const sessionsRef = useRef(Number(localStorage.getItem("sessions"))||0);
+  const [sessions,setSessions]=useState(Number(localStorage.getItem("sessions"))||0);
 
   const [aiInput,setAiInput]=useState("");
   const [aiMessage,setAiMessage]=useState("");
 
   const [focusMode,setFocusMode]=useState(false);
 
-  // ================= SAVE =================
+  // SAVE
   useEffect(()=>{
     localStorage.setItem("tasks",JSON.stringify(tasks));
     localStorage.setItem("xp",xp);
@@ -37,10 +37,10 @@ export default function App(){
     localStorage.setItem("distractions",distractions);
     localStorage.setItem("mood",mood);
     localStorage.setItem("focusTime",focusTime);
-    localStorage.setItem("sessions",sessionsRef.current);
-  },[tasks,xp,streak,user,distractions,mood,focusTime]);
+    localStorage.setItem("sessions",sessions);
+  },[tasks,xp,streak,user,distractions,mood,focusTime,sessions]);
 
-  // ================= TIMER =================
+  // TIMER
   useEffect(()=>{
     if(running && time>0){
       const i=setInterval(()=>setTime(t=>t-1),1000);
@@ -53,157 +53,151 @@ export default function App(){
       setXp(x=>x+60);
       setFocusTime(f=>f+25);
       setStreak(s=>s+1);
-      sessionsRef.current +=1;
+      setSessions(s=>s+1);
     }
   },[running,time]);
 
-  // ================= AI COACH =================
-  const generateAdvice=()=>{
+  // ✅ FIXED AI COACH (no warning)
+  const generateAdvice = useCallback(()=>{
     let msg="";
 
-    if(distractions > sessionsRef.current){
-      msg="لاحظت أنك مشتت اليوم 😵 جرب جلسة 15 دقيقة فقط.";
+    if(distractions > sessions){
+      msg="لاحظت أنك مشتت اليوم 😵 جرب جلسة 15 دقيقة.";
     }
-    else if(sessionsRef.current>=3){
-      msg="🔥 رائع! أنت في Flow، استمر!";
+    else if(sessions>=3){
+      msg="🔥 أنت في Flow رهيب!";
     }
     else if(tasks.length===0){
-      msg="ابدأ بمهمة صغيرة ولا تفكر كثيرًا.";
+      msg="ابدأ بمهمة صغيرة.";
     }
     else if(mood==="😴"){
-      msg="يبدو أنك متعب، جرب جلسة خفيفة.";
+      msg="أنت متعب، جرب جلسة خفيفة.";
     }
     else{
-      msg="استمر، أفضل وقت لك عادة بعد 8 مساء.";
+      msg="أفضل وقت لك للتركيز مساءً.";
     }
 
     setAiMessage(msg);
-  };
+  },[tasks,distractions,mood,sessions]);
 
   useEffect(()=>{
     generateAdvice();
-  },[tasks,distractions,mood]);
+  },[generateAdvice]);
 
-  // ================= SMART AI =================
-  const smartTaskBreak=()=>{
-    const text = aiInput.toLowerCase();
+  // TASK ADD
+  const addTask=()=>{
+    if(!input) return;
+    setTasks([...tasks,{text:input}]);
+    setInput("");
+  };
 
-    let newTasks=[];
+  // SMART SPLIT (not random)
+  const smartSplit=()=>{
+    if(!aiInput) return;
 
-    if(text.includes("operating systems") || text.includes("os")){
-      newTasks=[
-        "Processes — 25 min",
-        "Scheduling — 25 min",
-        "Deadlock — 20 min",
-        "Revision — 20 min"
-      ];
-    } else {
-      const words=text.split(" ");
-      newTasks = words.slice(0,4).map(w=>w+" — 20 min");
-    }
+    const words=aiInput.split(" ");
+
+    const newTasks=words.slice(0,4).map(w=>w+" — 20 min");
 
     setTasks([...tasks,...newTasks.map(t=>({text:t}))]);
   };
 
-  // ================= EMERGENCY =================
+  // EMERGENCY
   const emergencyFocus=()=>{
-    let task = tasks.length ? tasks[0].text : "ابدأ بمذاكرة بسيطة";
-    
-    setTasks([...tasks,{text:"🚨 "+task}]);
-
+    setTasks([...tasks,{text:"🚨 مهمة إنقاذ"}]);
     setTime(900);
     setRunning(true);
   };
 
-  // ================= LOGIN =================
+  // LOGIN
   if(!user){
     return(
       <div style={styles.center}>
-        <h1 style={styles.logo}>Focus Pro</h1>
-        <input style={styles.input} value={name} onChange={(e)=>setName(e.target.value)} placeholder="Your Name"/>
-        <button style={styles.btn} onClick={()=>setUser(name)}>Start</button>
+        <h1>Focus Pro</h1>
+        <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Name"/>
+        <button onClick={()=>setUser(name)}>Start</button>
       </div>
     );
   }
 
-  // ================= FOCUS MODE =================
+  // FOCUS MODE
   if(focusMode){
     return(
       <div style={styles.focus}>
-        <h1 style={{fontSize:"80px"}}>{Math.floor(time/60)}:{time%60}</h1>
-        <button style={styles.bigBtn} onClick={()=>setRunning(!running)}>
+        <h1>{Math.floor(time/60)}:{time%60}</h1>
+
+        <button onClick={()=>setRunning(!running)}>
           {running?"Pause":"Start"}
         </button>
-        <button style={styles.btn} onClick={()=>setFocusMode(false)}>Exit</button>
+
+        <button onClick={()=>setFocusMode(false)}>Exit</button>
       </div>
     );
   }
 
-  // ================= MAIN =================
   return(
     <div style={styles.app}>
 
-      {/* NAVBAR */}
+      {/* NAV */}
       <div style={styles.nav}>
-        <div>👑 {user}</div>
+        <div>{user}</div>
         <div>🔥 {streak}</div>
-        <div>⭐ Lv.{level}</div>
+        <div>⭐ {level}</div>
       </div>
 
-      {/* DASHBOARD GRID */}
       <div style={styles.grid}>
 
         {/* TIMER */}
         <div style={styles.card}>
-          <h3>⏱ Focus</h3>
+          <h3>⏱</h3>
           <h1>{Math.floor(time/60)}:{time%60}</h1>
 
-          <button style={styles.btn} onClick={()=>setRunning(!running)}>
+          <button onClick={()=>setRunning(!running)}>
             {running?"Pause":"Start"}
           </button>
 
-          <button style={styles.btn} onClick={()=>setFocusMode(true)}>Fullscreen</button>
+          <button onClick={()=>setFocusMode(true)}>
+            Focus
+          </button>
         </div>
 
         {/* AI COACH */}
         <div style={styles.card}>
-          <h3>🤖 Smart AI Coach</h3>
+          <h3>🤖 AI Coach</h3>
           <p>{aiMessage}</p>
         </div>
 
         {/* TASKS */}
         <div style={styles.card}>
-          <h3>🎯 Tasks</h3>
+          <input value={input} onChange={(e)=>setInput(e.target.value)} />
+          <button onClick={addTask}>Add</button>
 
-          <input style={styles.input} value={input} onChange={(e)=>setInput(e.target.value)} />
-          <button style={styles.btn} onClick={()=>setTasks([...tasks,{text:input}])}>Add</button>
-
-          <input style={styles.input} value={aiInput} onChange={(e)=>setAiInput(e.target.value)} placeholder="AI break task"/>
-          <button style={styles.btn} onClick={smartTaskBreak}>🤖 Split</button>
+          <input value={aiInput} onChange={(e)=>setAiInput(e.target.value)} placeholder="Split task"/>
+          <button onClick={smartSplit}>AI Split</button>
 
           {tasks.map((t,i)=>(<div key={i}>{t.text}</div>))}
         </div>
 
         {/* STATS */}
         <div style={styles.card}>
-          <h3>📊 Stats</h3>
           <p>Focus: {focusTime}</p>
-          <p>Sessions: {sessionsRef.current}</p>
+          <p>Sessions: {sessions}</p>
           <p>Distractions: {distractions}</p>
         </div>
 
         {/* MOOD */}
         <div style={styles.card}>
-          <h3>😊 Mood: {mood}</h3>
-          <button style={styles.btn} onClick={()=>setMood("😊")}>😊</button>
-          <button style={styles.btn} onClick={()=>setMood("😐")}>😐</button>
-          <button style={styles.btn} onClick={()=>setMood("😴")}>😴</button>
+          <h3>{mood}</h3>
+          <button onClick={()=>setMood("😊")}>😊</button>
+          <button onClick={()=>setMood("😐")}>😐</button>
+          <button onClick={()=>setMood("😴")}>😴</button>
         </div>
 
         {/* EMERGENCY */}
         <div style={styles.card}>
-          <h3>🚨 Emergency Focus</h3>
-          <button style={styles.btn} onClick={emergencyFocus}>Start Now</button>
+          <button onClick={emergencyFocus}>
+            🚨 أنقذني
+          </button>
         </div>
 
       </div>
@@ -212,16 +206,12 @@ export default function App(){
   );
 }
 
-// ================= STYLES =================
+// STYLES
 const styles={
-  app:{background:"#020617",color:"#fff",minHeight:"100vh"},
+  app:{background:"#020617",color:"white",minHeight:"100vh"},
   nav:{display:"flex",justifyContent:"space-between",padding:"10px",background:"#064e3b"},
   grid:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:"15px",padding:"20px"},
-  card:{padding:"20px",borderRadius:"15px",background:"rgba(255,255,255,0.05)",backdropFilter:"blur(10px)"},
-  input:{padding:"10px",margin:"5px",width:"100%",borderRadius:"8px"},
-  btn:{padding:"10px",margin:"5px",borderRadius:"12px",background:"linear-gradient(45deg,#10b981,#ffd700)",border:"none"},
-  bigBtn:{padding:"20px",borderRadius:"20px",background:"#10b981"},
-  focus:{background:"#000",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"},
-  center:{height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#020617"},
-  logo:{color:"#10b981"}
+  card:{padding:"20px",borderRadius:"10px",background:"#111"},
+  focus:{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",background:"#000"},
+  center:{height:"100vh",display:"flex",justifyContent:"center",alignItems:"center",flexDirection:"column"}
 };
