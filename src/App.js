@@ -22,7 +22,7 @@ export default function App(){
 
   const [focusMode,setFocusMode]=useState(false);
 
-  const [mood,setMood]=useState("");
+  const [mood,setMood]=useState(localStorage.getItem("mood")||"");
   const [distractions,setDistractions]=useState(0);
 
   const [zekr,setZekr]=useState("");
@@ -33,7 +33,8 @@ export default function App(){
     localStorage.setItem("xp",xp);
     localStorage.setItem("streak",streak);
     localStorage.setItem("user",user);
-  },[tasks,xp,streak,user]);
+    localStorage.setItem("mood",mood);
+  },[tasks,xp,streak,user,mood]);
 
   // ================= TIMER =================
   useEffect(()=>{
@@ -155,6 +156,7 @@ export default function App(){
         <p>XP {xp}</p>
 
         <p>🔥 Streak {streak}</p>
+
         <button onClick={()=>setUser("")}>Logout</button>
       </div>
 
@@ -183,12 +185,13 @@ export default function App(){
           </button>
         </div>
 
-        {/* MOOD */}
+        {/* MOOD ✅ FIXED */}
         <div style={styles.card}>
-          <h3>😊 Mood</h3>
-          <button onClick={()=>setMood("Happy")}>😊</button>
-          <button onClick={()=>setMood("Neutral")}>😐</button>
-          <button onClick={()=>setMood("Tired")}>😴</button>
+          <h3>😊 Mood: {mood || "Not set"}</h3>
+
+          <button onClick={()=>setMood("😊 Happy")}>😊</button>
+          <button onClick={()=>setMood("😐 Normal")}>😐</button>
+          <button onClick={()=>setMood("😴 Tired")}>😴</button>
         </div>
 
         {/* AZKAR */}
@@ -210,21 +213,6 @@ export default function App(){
           {tasks.map((t,i)=>(
             <div key={i}>{t.text}</div>
           ))}
-        </div>
-
-        {/* HEATMAP */}
-        <div style={styles.card}>
-          <h3>📊 Heat Map</h3>
-          <div style={{display:"flex"}}>
-            {[...Array(7)].map((_,i)=>(
-              <div key={i} style={{
-                width:"20px",
-                height:"20px",
-                margin:"2px",
-                background:Math.random()>0.5?"green":"#222"
-              }}/>
-            ))}
-          </div>
         </div>
 
       </div>
@@ -255,8 +243,7 @@ const styles={
     background:"rgba(255,255,255,0.05)",
     padding:"20px",
     marginBottom:"15px",
-    borderRadius:"10px",
-    backdropFilter:"blur(10px)"
+    borderRadius:"10px"
   },
   input:{
     padding:"10px",
