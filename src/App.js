@@ -37,17 +37,18 @@ export default function App() {
     if (time === 0) {
       setRunning(false);
       setTime(1500);
-      alert("خلصت ✅");
+      alert("✅ خلصت السيشن!");
     }
   }, [running, time]);
 
   // ✅ Azkar
   useEffect(() => {
     const list = [
-      "سبحان الله",
-      "الحمد لله",
+      "سبحان الله وبحمده",
+      "الحمد لله رب العالمين",
       "الله أكبر",
-      "لا إله إلا الله"
+      "لا إله إلا الله",
+      "استغفر الله العظيم"
     ];
 
     const i = setInterval(() => {
@@ -65,38 +66,70 @@ export default function App() {
     setInput("");
   };
 
-  // ✅ AI
+  // ✅ AI + Fallback
   const askAI = async () => {
+
     if (!aiInput) return alert("اكتب حاجة");
 
     try {
+
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: "Bearer " + API_KEY,
+          "HTTP-Referer": "https://focus-app-eight-rouge.vercel.app",
+          "X-Title": "Focus App"
         },
         body: JSON.stringify({
           model: "openai/gpt-4o-mini",
           messages: [
-            { role: "system", content: "حوّل الكلام لخطة مهام بسيطة" },
-            { role: "user", content: aiInput },
-          ],
-        }),
+            {
+              role: "system",
+              content: "انت مساعد مذاكرة. حول الكلام لخطة مهام بسيطة."
+            },
+            {
+              role: "user",
+              content: aiInput
+            }
+          ]
+        })
       });
 
       const data = await res.json();
 
-      const reply = data?.choices?.[0]?.message?.content || "";
+      const reply = data?.choices?.[0]?.message?.content;
 
-      const lines = reply
-        .split("\n")
-        .filter((l) => l.trim() !== "");
+      if (!reply) throw new Error("AI empty");
 
-      setTasks((prev) => [...prev, ...lines]);
+      const lines = reply.split("\n").filter(l => l.trim() !== "");
+
+      setTasks(prev => [...prev, ...lines]);
+
     } catch (e) {
-      alert("AI error");
-      console.log(e);
+
+      // 💣 fallback لو AI فشل
+      let fallback = [];
+
+      const text = aiInput.toLowerCase();
+
+      if (text.includes("امتحان")) {
+        fallback = [
+          "📖 ذاكر الجزء الأول",
+          "☕ استراحة",
+          "📘 الجزء الثاني",
+          "🧠 مراجعة",
+          "✅ حل امتحان"
+        ];
+      } else {
+        fallback = [
+          "📚 ابدأ المهمة",
+          "🧠 راجع",
+          "✅ خلّصها"
+        ];
+      }
+
+      setTasks(prev => [...prev, ...fallback]);
     }
   };
 
@@ -106,12 +139,11 @@ export default function App() {
     return m + ":" + (s < 10 ? "0" : "") + s;
   };
 
-  // ✅ Login Screen
+  // ✅ Login screen
   if (!user) {
     return (
       <div style={styles.center}>
         <h2>👋 Welcome</h2>
-
         <button style={styles.btn} onClick={loginGoogle}>
           🔐 Login with Google
         </button>
@@ -121,17 +153,17 @@ export default function App() {
 
   return (
     <div style={styles.container}>
+
       {/* Sidebar */}
       <div style={styles.sidebar}>
         <h3>🔥 Focus</h3>
         <p>👤 {user}</p>
-        <button style={styles.logout} onClick={logout}>
-          Logout
-        </button>
+        <button style={styles.logout} onClick={logout}>Logout</button>
       </div>
 
       {/* Main */}
       <div style={styles.main}>
+
         <h1>👑 FINAL APP</h1>
 
         {/* Timer */}
@@ -150,6 +182,7 @@ export default function App() {
 
         {/* Tasks + AI */}
         <div style={styles.card}>
+
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -162,16 +195,16 @@ export default function App() {
           <input
             value={aiInput}
             onChange={(e) => setAiInput(e.target.value)}
-            placeholder="اكتب للـ AI"
+            placeholder="اكتب طلبك للـ AI"
           />
           <button onClick={askAI}>🤖 AI</button>
 
           {tasks.map((t, i) => (
-            <div key={i} style={styles.task}>
-              {t}
-            </div>
+            <div key={i} style={styles.task}>{t}</div>
           ))}
+
         </div>
+
       </div>
     </div>
   );
@@ -179,54 +212,12 @@ export default function App() {
 
 // ✅ styles
 const styles = {
-  container: {
-    display: "flex",
-    height: "100vh",
-    background: "#0f172a",
-    color: "white",
-  },
-  sidebar: {
-    width: "200px",
-    background: "#020617",
-    padding: "20px",
-  },
-  main: {
-    flex: 1,
-    padding: "20px",
-  },
-  card: {
-    background: "#1e293b",
-    padding: "15px",
-    marginBottom: "15px",
-    borderRadius: "10px",
-  },
-  btn: {
-    padding: "10px",
-    background: "#22c55e",
-    border: "none",
-    color: "white",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
-  logout: {
-    marginTop: "10px",
-    padding: "8px",
-    background: "red",
-    border: "none",
-    color: "white",
-    cursor: "pointer",
-  },
-  center: {
-    height: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "column",
-  },
-  task: {
-    marginTop: "5px",
-    padding: "6px",
-    background: "#334155",
-    borderRadius: "6px",
-  },
+  container:{display:"flex",height:"100vh",background:"#0f172a",color:"white"},
+  sidebar:{width:"200px",background:"#020617",padding:"20px"},
+  main:{flex:1,padding:"20px"},
+  card:{background:"#1e293b",padding:"15px",marginBottom:"15px",borderRadius:"10px"},
+  btn:{padding:"10px",background:"#22c55e",border:"none",color:"white"},
+  logout:{marginTop:"10px",background:"red",color:"white"},
+  center:{height:"100vh",display:"flex",justifyContent:"center",alignItems:"center",flexDirection:"column"},
+  task:{marginTop:"5px",padding:"6px",background:"#334155",borderRadius:"6px"}
 };
