@@ -1,0 +1,198 @@
+import React, { useState, useEffect } from "react";
+import { auth, provider } from "./firebase";
+import { signInWithPopup, signOut } from "firebase/auth";
+
+const API_KEY = process.env.REACT_APP_AI_KEY;
+
+export default function App() {
+
+  const [user, setUser] = useState(null);
+  const [tasks, setTasks] = useState([]);
+  const [input, setInput] = useState("");
+  const [aiInput, setAiInput] = useState("");
+
+  const [time, setTime] = useState(1500);
+  const [running, setRunning] = useState(false);
+
+  const [zekr, setZekr] = useState("");
+
+  // ✅ Login
+  const loginGoogle = async () => {
+    const res = await signInWithPopup(auth, provider);
+    setUser(res.user.displayName);
+  };
+
+  const logout = async () => {
+    await signOut(auth);
+    setUser(null);
+  };
+
+  // ✅ Timer
+  useEffect(() => {
+    if (running && time > 0) {
+      const t = setInterval(() => setTime(t => t - 1), 1000);
+      return () => clearInterval(t);
+    }
+
+    if (time === 0) {
+      setRunning(false);
+      setTime(1500);
+      alert("خلصت ✅");
+    }
+  }, [running, time]);
+
+  // ✅ Azkar
+  useEffect(() => {
+    const list = [
+      "سبحان الله",
+      "الحمد لله",
+      "الله أكبر",
+      "لا إله إلا الله"
+    ];
+
+    const i = setInterval(() => {
+      const r = list[Math.floor(Math.random() * list.length)];
+      setZekr(r);
+    }, 5000);
+
+    return () => clearInterval(i);
+  }, []);
+
+  // 🤖 AI حقيقي
+  const askAI = async () => {
+
+    if (!aiInput) return alert("اكتب حاجة");
+
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + API_KEY
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: "انت مساعد مذاكرة. حوّل الكلام لخطة Tasks قصيرة."
+            },
+            {
+              role: "user",
+              content: aiInput
+            }
+          ]
+        })
+      });
+
+      const data = await res.json();
+
+      const reply = data.choices[0].message.content;
+
+      const lines = reply.split("\n").filter(l => l.trim() !== "");
+
+      setTasks(prev => [...prev, ...lines]);
+
+    } catch (e) {
+      alert("AI Error");
+      console.log(e);
+    }
+  };
+
+  const format = () => {
+    let m = Math.floor(time / 60);
+    let s = time % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  };
+
+  // ✅ login screen
+  if (!user) {
+    return (
+      <div style={styles.center}>
+        <h2>👋 Welcome</h2>
+
+        <button style={styles.btn} onClick={loginGoogle}>
+          🔐 Login with Google
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.container}>
+
+      <div style={styles.sidebar}>
+        <h3>🔥 Focus</h3>
+
+        <p>👤 {user}</p>
+
+        <button onClick={logout}>Logout</button>
+      </div>
+
+      <div style={styles.main}>
+
+        <h1>👑 FINAL APP</h1>
+
+        {/* Timer */}
+        <div style={styles.card}>
+          <h2>{format()}</h2>
+
+          <button onClick={() => setRunning(!running)}>
+            {running ? "Pause" : "Start"}
+          </button>
+        </div>
+
+        {/* Azkar */}
+        <div style={styles.card}>
+          <h3>🕌 ذكر</h3>
+          <p>{zekr}</p>
+        </div>
+
+        {/* Tasks + AI */}
+        <div style={styles.card}>
+
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Task"
+          />
+          <button onClick={() => {
+            if(!input) return;
+            setTasks([...tasks,input]);
+            setInput("");
+          }}>
+            Add
+          </button>
+
+          <br/><br/>
+
+          <input
+            value={aiInput}
+            onChange={(e) => setAiInput(e.target.value)}
+            placeholder="اكتب طلبك للـ AI"
+          />
+          <button onClick={askAI}>
+            🤖 AI
+          </button>
+
+          {tasks.map((t,i)=>(
+            <div key={i}>{t}</div>
+          ))}
+
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// styles
+const styles = {
+  container:{display:"flex",height:"100vh",background:"#0f172a",color:"white"},
+  sidebar:{width:"200px",background:"#020617",padding:"20px"},
+  main:{flex:1,padding:"20px"},
+  card:{background:"#1e293b",padding:"15px",marginBottom:"10px"},
+  btn:{padding:"10px",background:"#22c55e",color:"white"},
+  center:{height:"100vh",display:"flex",justifyContent:"center",alignItems:"center",flexDirection:"column"}
+};
+``
