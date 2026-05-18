@@ -30,7 +30,7 @@ export default function App() {
   // ✅ Timer
   useEffect(() => {
     if (running && time > 0) {
-      const t = setInterval(() => setTime((t) => t - 1), 1000);
+      const t = setInterval(() => setTime(t => t - 1), 1000);
       return () => clearInterval(t);
     }
 
@@ -45,10 +45,11 @@ export default function App() {
   useEffect(() => {
     const list = [
       "سبحان الله وبحمده",
-      "الحمد لله رب العالمين",
+      "الحمد لله",
       "الله أكبر",
       "لا إله إلا الله",
-      "استغفر الله العظيم"
+      "استغفر الله العظيم",
+      "اللهم صل على محمد"
     ];
 
     const i = setInterval(() => {
@@ -66,7 +67,7 @@ export default function App() {
     setInput("");
   };
 
-  // ✅ AI + Fallback
+  // 🤖 AI (محسن + متنوع)
   const askAI = async () => {
 
     if (!aiInput) return alert("اكتب حاجة");
@@ -86,50 +87,36 @@ export default function App() {
           messages: [
             {
               role: "system",
-              content: "انت مساعد مذاكرة. حول الكلام لخطة مهام بسيطة."
+              content: "انت مساعد ذكي. اعمل خطة tasks مختلفة كل مرة ومنظمة."
             },
             {
               role: "user",
-              content: aiInput
+              content: aiInput + " اعملها بشكل جديد ومختلف"
             }
           ]
         })
       });
 
       const data = await res.json();
-
       const reply = data?.choices?.[0]?.message?.content;
 
-      if (!reply) throw new Error("AI empty");
+      if (!reply) throw new Error("AI fail");
 
       const lines = reply.split("\n").filter(l => l.trim() !== "");
-
       setTasks(prev => [...prev, ...lines]);
 
     } catch (e) {
 
-      // 💣 fallback لو AI فشل
-      let fallback = [];
+      // ✅ fallback متنوع
+      const randomPlans = [
+        ["📖 ابدأ", "🧠 راجع", "✅ خلص"],
+        ["📘 جزء 1", "☕ بريك", "📚 جزء 2"],
+        ["🧠 مراجعة", "✍️ تدريب", "✅ اختبار"],
+        ["📖 قراءة", "🎯 تركيز", "✅ إنهاء"]
+      ];
 
-      const text = aiInput.toLowerCase();
-
-      if (text.includes("امتحان")) {
-        fallback = [
-          "📖 ذاكر الجزء الأول",
-          "☕ استراحة",
-          "📘 الجزء الثاني",
-          "🧠 مراجعة",
-          "✅ حل امتحان"
-        ];
-      } else {
-        fallback = [
-          "📚 ابدأ المهمة",
-          "🧠 راجع",
-          "✅ خلّصها"
-        ];
-      }
-
-      setTasks(prev => [...prev, ...fallback]);
+      const random = randomPlans[Math.floor(Math.random() * randomPlans.length)];
+      setTasks(prev => [...prev, ...random]);
     }
   };
 
@@ -180,7 +167,7 @@ export default function App() {
           <p>{zekr}</p>
         </div>
 
-        {/* Tasks + AI */}
+        {/* Tasks */}
         <div style={styles.card}>
 
           <input
@@ -190,12 +177,12 @@ export default function App() {
           />
           <button onClick={addTask}>Add</button>
 
-          <br /><br />
+          <br/><br/>
 
           <input
             value={aiInput}
             onChange={(e) => setAiInput(e.target.value)}
-            placeholder="اكتب طلبك للـ AI"
+            placeholder="اكتب للـ AI"
           />
           <button onClick={askAI}>🤖 AI</button>
 
@@ -210,7 +197,7 @@ export default function App() {
   );
 }
 
-// ✅ styles
+// styles
 const styles = {
   container:{display:"flex",height:"100vh",background:"#0f172a",color:"white"},
   sidebar:{width:"200px",background:"#020617",padding:"20px"},
