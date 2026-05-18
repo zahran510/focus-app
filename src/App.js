@@ -2,36 +2,32 @@ import React, { useState, useEffect } from "react";
 
 export default function App(){
 
-  // ✅ USER
+  // ================= USER =================
   const [user,setUser]=useState(localStorage.getItem("user")||"");
-  const [inputUser,setInputUser]=useState("");
+  const [name,setName]=useState("");
 
-  // ✅ TASKS
+  // ================= SYSTEM =================
   const [tasks,setTasks]=useState(JSON.parse(localStorage.getItem("tasks"))||[]);
-  const [taskInput,setTaskInput]=useState("");
+  const [input,setInput]=useState("");
+  const [aiInput,setAiInput]=useState("");
 
-  // ✅ TIMER
+  const [xp,setXp]=useState(Number(localStorage.getItem("xp"))||0);
+  const level=Math.floor(xp/100)+1;
+
   const [time,setTime]=useState(1500);
   const [running,setRunning]=useState(false);
 
-  // ✅ XP SYSTEM
-  const [xp,setXp]=useState(Number(localStorage.getItem("xp"))||0);
-  const [level,setLevel]=useState(1);
+  const [focus,setFocus]=useState(0);
   const [streak,setStreak]=useState(Number(localStorage.getItem("streak"))||0);
 
-  // ✅ AI
-  const [aiInput,setAiInput]=useState("");
-
-  // ✅ MODES
   const [focusMode,setFocusMode]=useState(false);
 
-  // ✅ TRACKERS
+  const [mood,setMood]=useState("");
   const [distractions,setDistractions]=useState(0);
 
-  // ✅ AZKAR
   const [zekr,setZekr]=useState("");
 
-  // ✅ SAVE DATA
+  // ================= SAVE =================
   useEffect(()=>{
     localStorage.setItem("tasks",JSON.stringify(tasks));
     localStorage.setItem("xp",xp);
@@ -39,135 +35,126 @@ export default function App(){
     localStorage.setItem("user",user);
   },[tasks,xp,streak,user]);
 
-  // ✅ LEVEL SYSTEM
-  useEffect(()=>{
-    setLevel(Math.floor(xp/100)+1);
-  },[xp]);
-
-  // ✅ TIMER
+  // ================= TIMER =================
   useEffect(()=>{
     if(running && time>0){
-      const t=setInterval(()=>setTime(t=>t-1),1000);
-      return ()=>clearInterval(t);
+      const i=setInterval(()=>setTime(t=>t-1),1000);
+      return ()=>clearInterval(i);
     }
 
     if(time===0){
       setRunning(false);
       setTime(1500);
-
       setXp(x=>x+50);
+      setFocus(f=>f+25);
       setStreak(s=>s+1);
 
-      alert("🔥 Session done +50 XP");
+      alert("🔥 Session Done +50 XP");
     }
-
   },[running,time]);
 
-  // ✅ AZKAR
+  // ================= AZKAR =================
   useEffect(()=>{
-    const list=[
+    const azkar=[
       "سبحان الله",
       "الحمد لله",
       "الله أكبر",
       "لا إله إلا الله",
-      "استغفر الله",
-      "اللهم صل على محمد"
+      "استغفر الله"
     ];
 
     const i=setInterval(()=>{
-      const r=list[Math.floor(Math.random()*list.length)];
-      setZekr(r);
-    },5000);
+      setZekr(azkar[Math.floor(Math.random()*azkar.length)]);
+    },6000);
 
     return ()=>clearInterval(i);
   },[]);
 
-  // ✅ LOGIN
+  // ================= LOGIN =================
   if(!user){
     return(
       <div style={styles.center}>
-        <h2>👋 Welcome</h2>
-        <input value={inputUser} onChange={(e)=>setInputUser(e.target.value)} placeholder="Name"/>
-        <button onClick={()=>setUser(inputUser)}>Start</button>
+        <h1 style={styles.title}>👑 Focus Pro</h1>
+
+        <input 
+          placeholder="Name"
+          value={name}
+          onChange={(e)=>setName(e.target.value)}
+          style={styles.input}
+        />
+
+        <button style={styles.btn} onClick={()=>setUser(name)}>
+          Start
+        </button>
       </div>
     );
   }
 
-  // ✅ ADD TASK
-  const addTask=()=>{
-    if(!taskInput) return;
-    setTasks([...tasks,{text:taskInput}]);
-    setTaskInput("");
-  };
+  // ================= AI =================
+  const askAI=()=>{
+    let plan=[];
 
-  // ✅ AI SMART (محسن ومتغير)
-  const smartAI=()=>{
     const text=aiInput.toLowerCase();
 
-    let plans=[];
-
     if(text.includes("امتحان")){
-      plans=[
+      plan=[
         "📖 Chapter 1",
         "☕ Break",
         "📘 Chapter 2",
         "🧠 Review",
         "✅ Practice"
       ];
-    } else if(text.includes("3")){
-      plans=[
-        "📖 Study 1 (50 min)",
+    }else if(text.includes("3")){
+      plan=[
+        "📖 50 min",
         "☕ Break",
-        "📘 Study 2 (50 min)",
+        "📘 50 min",
         "🧠 Review"
       ];
-    } else {
-      const randomPlans=[
-        ["📚 Start","🧠 Review","✅ Finish"],
-        ["📖 Read","🎯 Focus","✅ Done"]
+    }else{
+      const random=[
+        ["📚 Start","🎯 Focus","✅ Done"],
+        ["📖 Read","🧠 Review","✅ Finish"]
       ];
-      plans=randomPlans[Math.floor(Math.random()*randomPlans.length)];
+      plan=random[Math.floor(Math.random()*random.length)];
     }
 
-    setTasks([...tasks,...plans.map(p=>({text:p}))]);
+    setTasks([...tasks,...plan.map(t=>({text:t,done:false}))]);
   };
 
-  // ✅ MONK MODE
+  // ================= TASK =================
+  const addTask=()=>{
+    if(!input) return;
+    setTasks([...tasks,{text:input}]);
+    setInput("");
+  };
+
+  // ================= FOCUS MODE =================
   if(focusMode){
     return(
       <div style={styles.focus}>
-        <h2>🧘 Monk Mode</h2>
-
         <h1>{Math.floor(time/60)}:{time%60}</h1>
-
         <button onClick={()=>setRunning(!running)}>
           {running?"Pause":"Start"}
         </button>
-
-        <button onClick={()=>{
-          setFocusMode(false);
-          setDistractions(d=>d+1);
-        }}>
-          Exit
-        </button>
-
-        <p>🚫 Distractions: {distractions}</p>
+        <button onClick={()=>{setFocusMode(false); setDistractions(d=>d+1)}}>Exit</button>
       </div>
     );
   }
 
+  // ================= MAIN =================
   return(
     <div style={styles.container}>
 
       {/* SIDEBAR */}
       <div style={styles.sidebar}>
-        <h3>🔥 Focus System</h3>
+        <h3>🔥 Focus</h3>
+        <p>{user}</p>
 
-        <p>👤 {user}</p>
-        <p>🏆 Level {level}</p>
+        <p>Level {level}</p>
+        <p>XP {xp}</p>
+
         <p>🔥 Streak {streak}</p>
-        <p>⚡ XP {xp}</p>
-
         <button onClick={()=>setUser("")}>Logout</button>
       </div>
 
@@ -175,6 +162,13 @@ export default function App(){
       <div style={styles.main}>
 
         <h1>👑 Dashboard</h1>
+
+        {/* STATS */}
+        <div style={styles.card}>
+          <h3>📊 Overview</h3>
+          <p>Focus Today: {focus} min</p>
+          <p>Distractions: {distractions}</p>
+        </div>
 
         {/* TIMER */}
         <div style={styles.card}>
@@ -189,6 +183,14 @@ export default function App(){
           </button>
         </div>
 
+        {/* MOOD */}
+        <div style={styles.card}>
+          <h3>😊 Mood</h3>
+          <button onClick={()=>setMood("Happy")}>😊</button>
+          <button onClick={()=>setMood("Neutral")}>😐</button>
+          <button onClick={()=>setMood("Tired")}>😴</button>
+        </div>
+
         {/* AZKAR */}
         <div style={styles.card}>
           <h3>🕌 ذكر</h3>
@@ -197,25 +199,32 @@ export default function App(){
 
         {/* TASKS */}
         <div style={styles.card}>
-
-          <input value={taskInput} onChange={(e)=>setTaskInput(e.target.value)} placeholder="Task"/>
+          <input value={input} onChange={(e)=>setInput(e.target.value)} placeholder="Task"/>
           <button onClick={addTask}>Add</button>
 
           <br/><br/>
 
-          <input value={aiInput} onChange={(e)=>setAiInput(e.target.value)} placeholder="AI plan"/>
-          <button onClick={smartAI}>🤖 AI</button>
+          <input value={aiInput} onChange={(e)=>setAiInput(e.target.value)} placeholder="AI Plan"/>
+          <button onClick={askAI}>🤖 AI</button>
 
           {tasks.map((t,i)=>(
-            <div key={i} style={styles.task}>{t.text}</div>
+            <div key={i}>{t.text}</div>
           ))}
-
         </div>
 
-        {/* STATS */}
+        {/* HEATMAP */}
         <div style={styles.card}>
-          <h3>📊 Stats</h3>
-          <p>Distractions: {distractions}</p>
+          <h3>📊 Heat Map</h3>
+          <div style={{display:"flex"}}>
+            {[...Array(7)].map((_,i)=>(
+              <div key={i} style={{
+                width:"20px",
+                height:"20px",
+                margin:"2px",
+                background:Math.random()>0.5?"green":"#222"
+              }}/>
+            ))}
+          </div>
         </div>
 
       </div>
@@ -223,26 +232,60 @@ export default function App(){
   );
 }
 
+// ================= STYLES =================
 const styles={
-  container:{display:"flex",height:"100vh",background:"#0f172a",color:"white"},
-  sidebar:{width:"220px",background:"#020617",padding:"20px"},
-  main:{flex:1,padding:"20px"},
-  card:{background:"#1e293b",padding:"20px",marginBottom:"15px",borderRadius:"10px"},
-  focus:{
-    height:"100vh",
-    background:"#000",
-    color:"white",
+  container:{
     display:"flex",
-    flexDirection:"column",
-    justifyContent:"center",
-    alignItems:"center"
+    height:"100vh",
+    background:"#020617",
+    color:"white",
+    fontFamily:"sans-serif"
+  },
+  sidebar:{
+    width:"220px",
+    background:"#052e2b",
+    padding:"20px"
+  },
+  main:{
+    flex:1,
+    padding:"20px",
+    background:"#020617"
+  },
+  card:{
+    background:"rgba(255,255,255,0.05)",
+    padding:"20px",
+    marginBottom:"15px",
+    borderRadius:"10px",
+    backdropFilter:"blur(10px)"
+  },
+  input:{
+    padding:"10px",
+    borderRadius:"6px",
+    border:"none"
+  },
+  btn:{
+    padding:"10px",
+    background:"#10b981",
+    border:"none",
+    color:"white",
+    borderRadius:"6px"
   },
   center:{
     height:"100vh",
     display:"flex",
     justifyContent:"center",
     alignItems:"center",
-    flexDirection:"column"
+    flexDirection:"column",
+    background:"#020617",
+    color:"white"
   },
-  task:{marginTop:"5px"}
+  title:{color:"#10b981"},
+  focus:{
+    height:"100vh",
+    display:"flex",
+    flexDirection:"column",
+    justifyContent:"center",
+    alignItems:"center",
+    background:"#000"
+  }
 };
