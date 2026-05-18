@@ -30,7 +30,7 @@ export default function App() {
   // ✅ Timer
   useEffect(() => {
     if (running && time > 0) {
-      const t = setInterval(() => setTime(t => t - 1), 1000);
+      const t = setInterval(() => setTime((t) => t - 1), 1000);
       return () => clearInterval(t);
     }
 
@@ -58,9 +58,15 @@ export default function App() {
     return () => clearInterval(i);
   }, []);
 
-  // 🤖 AI حقيقي
-  const askAI = async () => {
+  // ✅ Tasks
+  const addTask = () => {
+    if (!input) return;
+    setTasks([...tasks, input]);
+    setInput("");
+  };
 
+  // ✅ AI
+  const askAI = async () => {
     if (!aiInput) return alert("اكتب حاجة");
 
     try {
@@ -68,44 +74,39 @@ export default function App() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer " + API_KEY
+          Authorization: "Bearer " + API_KEY,
         },
         body: JSON.stringify({
           model: "openai/gpt-4o-mini",
           messages: [
-            {
-              role: "system",
-              content: "انت مساعد مذاكرة. حوّل الكلام لخطة Tasks قصيرة."
-            },
-            {
-              role: "user",
-              content: aiInput
-            }
-          ]
-        })
+            { role: "system", content: "حوّل الكلام لخطة مهام بسيطة" },
+            { role: "user", content: aiInput },
+          ],
+        }),
       });
 
       const data = await res.json();
 
-      const reply = data.choices[0].message.content;
+      const reply = data?.choices?.[0]?.message?.content || "";
 
-      const lines = reply.split("\n").filter(l => l.trim() !== "");
+      const lines = reply
+        .split("\n")
+        .filter((l) => l.trim() !== "");
 
-      setTasks(prev => [...prev, ...lines]);
-
+      setTasks((prev) => [...prev, ...lines]);
     } catch (e) {
-      alert("AI Error");
+      alert("AI error");
       console.log(e);
     }
   };
 
   const format = () => {
-    let m = Math.floor(time / 60);
-    let s = time % 60;
+    const m = Math.floor(time / 60);
+    const s = time % 60;
     return m + ":" + (s < 10 ? "0" : "") + s;
   };
 
-  // ✅ login screen
+  // ✅ Login Screen
   if (!user) {
     return (
       <div style={styles.center}>
@@ -120,23 +121,22 @@ export default function App() {
 
   return (
     <div style={styles.container}>
-
+      {/* Sidebar */}
       <div style={styles.sidebar}>
         <h3>🔥 Focus</h3>
-
         <p>👤 {user}</p>
-
-        <button onClick={logout}>Logout</button>
+        <button style={styles.logout} onClick={logout}>
+          Logout
+        </button>
       </div>
 
+      {/* Main */}
       <div style={styles.main}>
-
         <h1>👑 FINAL APP</h1>
 
         {/* Timer */}
         <div style={styles.card}>
           <h2>{format()}</h2>
-
           <button onClick={() => setRunning(!running)}>
             {running ? "Pause" : "Start"}
           </button>
@@ -150,49 +150,83 @@ export default function App() {
 
         {/* Tasks + AI */}
         <div style={styles.card}>
-
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Task"
           />
-          <button onClick={() => {
-            if(!input) return;
-            setTasks([...tasks,input]);
-            setInput("");
-          }}>
-            Add
-          </button>
+          <button onClick={addTask}>Add</button>
 
-          <br/><br/>
+          <br /><br />
 
           <input
             value={aiInput}
             onChange={(e) => setAiInput(e.target.value)}
-            placeholder="اكتب طلبك للـ AI"
+            placeholder="اكتب للـ AI"
           />
-          <button onClick={askAI}>
-            🤖 AI
-          </button>
+          <button onClick={askAI}>🤖 AI</button>
 
-          {tasks.map((t,i)=>(
-            <div key={i}>{t}</div>
+          {tasks.map((t, i) => (
+            <div key={i} style={styles.task}>
+              {t}
+            </div>
           ))}
-
         </div>
-
       </div>
     </div>
   );
 }
 
-// styles
+// ✅ styles
 const styles = {
-  container:{display:"flex",height:"100vh",background:"#0f172a",color:"white"},
-  sidebar:{width:"200px",background:"#020617",padding:"20px"},
-  main:{flex:1,padding:"20px"},
-  card:{background:"#1e293b",padding:"15px",marginBottom:"10px"},
-  btn:{padding:"10px",background:"#22c55e",color:"white"},
-  center:{height:"100vh",display:"flex",justifyContent:"center",alignItems:"center",flexDirection:"column"}
+  container: {
+    display: "flex",
+    height: "100vh",
+    background: "#0f172a",
+    color: "white",
+  },
+  sidebar: {
+    width: "200px",
+    background: "#020617",
+    padding: "20px",
+  },
+  main: {
+    flex: 1,
+    padding: "20px",
+  },
+  card: {
+    background: "#1e293b",
+    padding: "15px",
+    marginBottom: "15px",
+    borderRadius: "10px",
+  },
+  btn: {
+    padding: "10px",
+    background: "#22c55e",
+    border: "none",
+    color: "white",
+    borderRadius: "6px",
+    cursor: "pointer",
+  },
+  logout: {
+    marginTop: "10px",
+    padding: "8px",
+    background: "red",
+    border: "none",
+    color: "white",
+    cursor: "pointer",
+  },
+  center: {
+    height: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "column",
+  },
+  task: {
+    marginTop: "5px",
+    padding: "6px",
+    background: "#334155",
+    borderRadius: "6px",
+  },
 };
-``
